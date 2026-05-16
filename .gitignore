@@ -1,0 +1,9 @@
+smarteye/
+venv/
+.venv/
+env/
+Lib/
+Scripts/
+Include/
+pyvenv.cfg
+.env

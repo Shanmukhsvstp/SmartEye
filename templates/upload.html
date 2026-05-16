@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload An Image</title>
+    <style>
+        body {
+            background-color: white;
+        }
+
+        table,
+        th,
+        td {
+            border: 1px solid;
+        }
+    </style>
+</head>
+
+<body>
+
+
+    <input id="img" type="file" name="img" />
+    <button onclick="scanImage()">Submit</button>
+    <br><br>
+    <div id="res"></div>
+
+
+    <script>
+        const scanner_url = "/api/scan/image";
+
+
+        function renderCSV(csv) {
+
+            const rows = csv.trim().split("\n");
+
+            let html = "<table border='1'>";
+
+            for (const row of rows) {
+
+                const cols = row.split(",");
+
+                html += "<tr>";
+
+                for (const col of cols) {
+
+                    html += `<td>${col}</td>`;
+                }
+
+                html += "</tr>";
+            }
+
+            html += "</table>";
+
+            document.getElementById(
+                "res"
+            ).innerHTML = html;
+        }
+        async function scanImage() {
+            const inp = document.getElementById("img");
+            const img = inp.files[0];
+            const fD = new FormData();
+            fD.append("img", img);
+            const res = await fetch(
+                `${scanner_url}`,
+                {
+                    method: "POST",
+                    "body": fD
+                }
+            )
+            // const tdata = await res.text();
+            const data = await res.json();
+            // console.log(tdata);
+            console.log(data.data);
+            renderCSV(data.data);
+        }
+    </script>
+</body>
+
+</html>

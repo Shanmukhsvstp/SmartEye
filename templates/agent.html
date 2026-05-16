@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload An Image</title>
+    <style>
+        body {
+            background-color: white;
+        }
+
+        table,
+        th,
+        td {
+            border: 1px solid;
+        }
+    </style>
+</head>
+
+<body>
+
+
+    <input id="pdf" type="file" name="pdf" />
+    <button onclick="scanImage()">Submit</button>
+    <br><br>
+    <div id="res"></div>
+
+
+    <script>
+        const scanner_url = "/api/scan/agent/upload";
+        const ws_endpoint = "/api/scan/agent"
+
+        function renderCSV(csv) {
+
+            const rows = csv.trim().split("\n");
+
+            const table = document.createElement("table")
+
+            table.border = '1'
+
+            for (const row of rows) {
+
+                const tr = document.createElement("tr");
+
+                const cols = row.split(",");
+
+                for (const col of cols) {
+                    const td = document.createElement("td");
+                    td.textContent  = col;
+                    tr.appendChild(td);
+                }
+
+                table.appendChild(tr)
+            }
+            document.getElementById("res").appendChild(table);
+        }
+        async function scanImage() {
+            const inp = document.getElementById("pdf");
+            const pdf = inp.files[0];
+            const fD = new FormData();
+            fD.append("pdf", pdf);
+            const res = await fetch(
+                `${scanner_url}`,
+                {
+                    method: "POST",
+                    "body": fD
+                }
+            )
+            // const tdata = await res.text();
+            const data = await res.json();
+            // console.log(tdata);
+            console.log(data.worker_id);
+            // renderCSV(data.data);
+            await handleWs(data.worker_id);
+        }
+        async function handleWs(worker_id) {
+            const ws = new WebSocket(
+                `${ws_endpoint}/${worker_id}`
+            )
+            ws.onmessage = (e) => {
+                console.log(e.data);
+                const data = JSON.parse(e.data);
+                if (data.type === "task_complete") {
+                    const data_arr = data.data;
+                    for (const each of data_arr) {
+                        renderCSV(each);
+                    }
+                }
+            }
+            ws.onclose = (e) => {
+                console.log("Disconnected")
+            }
+        }
+    </script>
+</body>
+
+</html>
