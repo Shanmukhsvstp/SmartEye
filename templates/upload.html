@@ -5,9 +5,83 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Upload An Image</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://gstatic.com" crossorigin>
+    <link href="https://googleapis.com" rel="stylesheet">
+
     <style>
+        :root {
+            --color-accent-light: #e6f1ff;
+            --color-accent-dark: #011038;
+            --feature-accent: #2c90f3;
+            --feature-accent-dark: #9cccfc;
+            --background-tile-accent: #9cccfc;
+            --background-tile-accent-dark: #2c90f3;
+            --color-text: #000000;
+            --color-text-dark: #ffffff;
+        }
+
         body {
-            background-color: white;
+            background-color: var(--color-accent-light);
+            font-family: 'Inter', sans-serif;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: var(--color-accent-dark);
+                color: #ffffff;
+            }
+
+            .upload {
+                background-color: var(--background-tile-accent-dark);
+            }
+
+            button {
+                background-color: var(--feature-accent-dark);
+                color: var(--color-text-dark);
+            }
+
+        }
+
+
+        .post_header {
+            width: 100vw;
+            place-items: center;
+        }
+
+        .content {
+            width: 100vw;
+            place-items: center;
+        }
+
+        .upload {
+            background-color: var(--background-tile-accent);
+            border-radius: 30px;
+
+            padding: 170px;
+
+            cursor: pointer;
+        }
+
+        .upload-label {
+            display: block;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        button {
+            background-color: var(--feature-accent);
+            border: none;
+            padding: 10px;
+            min-width: 10vw;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+
+        .form {
+            margin-top: 2vh;
         }
 
         table,
@@ -15,21 +89,68 @@
         td {
             border: 1px solid;
         }
+
+        .results {
+            margin-top: 5vh;
+        }
     </style>
 </head>
 
 <body>
 
 
-    <input id="img" type="file" name="img" />
-    <button onclick="scanImage()">Submit</button>
-    <br><br>
-    <div id="res"></div>
+    <div class="main">
+        <div class="container">
+            <div class="header">
 
+            </div>
+            <div class="post_header">
+                <div class="title">
+                    <h1>Scan with SmartEye</h1>
+                </div>
+            </div>
+            <div class="content">
+                <div class="upload">
+                    <input id="img" type="file" name="img" hidden />
+
+                    <label for="img" class="upload-label">
+                        Click or Drop Here
+                    </label>
+                </div>
+                <div class="form">
+                    <button onclick="scanImage()">Submit</button>
+                </div>
+                <div class="results">
+                    <div id="res"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
         const scanner_url = "/api/scan/image";
+        const upload = document.querySelector(".upload");
+        const input = document.querySelector("#img");
 
+        upload.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            upload.classList.add("dragging");
+        });
+
+        upload.addEventListener("dragleave", () => {
+            upload.classList.remove("dragging");
+        });
+
+        upload.addEventListener("drop", (e) => {
+            e.preventDefault();
+            upload.classList.remove("dragging");
+
+            const files = e.dataTransfer.files;
+
+            input.files = files;
+
+            console.log(files);
+        });
 
         function renderCSV(csv) {
 

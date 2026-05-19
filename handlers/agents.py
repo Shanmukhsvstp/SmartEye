@@ -2,6 +2,7 @@ import uuid
 import os
 from handlers.pdfs import extractImagesFromPDF
 from handlers.ai import getCsvFromCV
+import asyncio
 
 UPLOAD_DIR = "agent_uploads"
 
@@ -65,41 +66,86 @@ def initWorker(ws, worker_id):
     worker.addWs(ws=ws)
     
 def removeWorker(worker_id):
-    worker = workers[worker_id]
+    worker = workers.get(worker_id)
+    if worker is None:
+        return
     worker.cleanStorage()
     workers.pop(worker_id, None)
 
     
     
+import asyncio
+
+
 async def startAgent(worker_id):
+
     worker = workers.get(worker_id, None)
-    if worker == None:
+
+    if worker is None:
         return
+
     ws = worker.getWs()
-    if (ws == None or worker.getFilePath() == None):
+
+    if ws is None or worker.getFilePath() is None:
         return
-    # Starting Agent
+
     await ws.send_json({
         "type": "progress",
         "progress": 0,
         "message": "Agent Started..."
     })
+
     file_path = worker.getFilePath()
+
     images = extractImagesFromPDF(path=file_path)
-    CSVs = []
+
     tot = len(images)
-    for i, image in enumerate(images):
-        await ws.send_json({
-            "type": "progress",
-            "message": f"Analyzing page {i+1}",
-            "progress": int((i/tot) * 100)
-        })
-        csv = await getCsvFromCV(image)
-        CSVs.append(csv)
+
+    semaphore = asyncio.Semaphore(10)
+
+    completed = 0
+
+
+    async def process_page(i, image):
+
+        nonlocal completed
+
+        async with semaphore:
+
+            await ws.send_json({
+                "type": "progress",
+                "message": f"Analyzing page {i+1}",
+                "progress": int((completed / tot) * 100)
+            })
+
+            csv = await getCsvFromCV(image)
+
+            completed += 1
+
+            await ws.send_json({
+                "type": "progress",
+                "message": f"Completed page {i+1}",
+                "progress": int((completed / tot) * 100)
+            })
+
+            return i, csv
+
+
+    tasks = [
+        process_page(i, image)
+        for i, image in enumerate(images)
+    ]
+
+    results = await asyncio.gather(*tasks)
+
+    results.sort(key=lambda x: x[0])
+
+    CSVs = [csv for _, csv in results]
+
     removeWorker(worker_id=worker_id)
-    cleanupStorage(worker_id=worker_id)
+
     await ws.send_json({
         "type": "task_complete",
         "message": "Completed Analysis",
-        "data": CSVs
+        "data": CSVs,
     })

@@ -4,8 +4,8 @@ import numpy as np
 
 async def getCsvFromImage(img):
     nparr = np.frombuffer(img, np.uint8)
-    data = await getCsv(nparr=nparr)
-    return data
+    data, usn = await getCsv(nparr=nparr)
+    return data, usn
     
 
 async def extractImagesFromPDF(pdf):

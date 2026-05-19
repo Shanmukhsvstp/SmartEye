@@ -28,10 +28,11 @@ async def scan_image(img: UploadFile = File(...)):
     img_file = await img.read()
     print(img.content_type)
     print(len(img_file))
-    data = await getCsvFromImage(img_file)
+    data, usn = await getCsvFromImage(img_file)
     return {
         "message": "success",
-        "data": data
+        "data": data,
+        "usn": usn
     }
     
 @app.get("/scan_pdfs")
