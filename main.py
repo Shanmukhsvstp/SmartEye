@@ -4,7 +4,11 @@ from handlers.files import getCsvFromImage
 import uvicorn
 from handlers.agents import startAgent, createWorker, UPLOAD_DIR, initWorker, removeWorker
 import asyncio
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
+port = os.getenv("PORT")
 app = FastAPI()
 api = APIRouter(prefix="/api")
 scanner = APIRouter(prefix="/api/scan")
@@ -80,6 +84,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8000,
+        port=port,
         reload=True
     )
