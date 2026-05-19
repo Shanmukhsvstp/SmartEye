@@ -4,32 +4,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload An Image</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://gstatic.com" crossorigin>
-    <link href="https://googleapis.com" rel="stylesheet">
+    <title>SmartEye Image Scan</title>
 
     <style>
+
         :root {
             --color-accent-light: #e6f1ff;
             --color-accent-dark: #011038;
+
             --feature-accent: #2c90f3;
             --feature-accent-dark: #9cccfc;
+
             --background-tile-accent: #9cccfc;
             --background-tile-accent-dark: #2c90f3;
+
             --color-text: #000000;
             --color-text-dark: #ffffff;
         }
 
         body {
             background-color: var(--color-accent-light);
-            font-family: 'Inter', sans-serif;
+            font-family: Inter, sans-serif;
+            margin: 0;
+            padding: 0;
         }
 
         @media (prefers-color-scheme: dark) {
+
             body {
                 background-color: var(--color-accent-dark);
-                color: #ffffff;
+                color: white;
             }
 
             .upload {
@@ -41,26 +45,33 @@
                 color: var(--color-text-dark);
             }
 
-        }
-
-
-        .post_header {
-            width: 100vw;
-            place-items: center;
+            .progress-container {
+                background-color: #1b2a4f;
+            }
         }
 
         .content {
             width: 100vw;
-            place-items: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .title {
+            margin-top: 5vh;
         }
 
         .upload {
+            margin-top: 5vh;
             background-color: var(--background-tile-accent);
             border-radius: 30px;
-
-            padding: 170px;
-
+            padding: 140px;
             cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .upload.dragging {
+            transform: scale(1.02);
         }
 
         .upload-label {
@@ -69,134 +80,257 @@
             height: 100%;
             text-align: center;
             cursor: pointer;
+            font-size: 20px;
+        }
+
+        .file-name {
+            margin-top: 15px;
+            font-size: 14px;
         }
 
         button {
+            margin-top: 30px;
             background-color: var(--feature-accent);
             border: none;
-            padding: 10px;
-            min-width: 10vw;
+            padding: 12px 20px;
             border-radius: 20px;
             cursor: pointer;
+            font-size: 15px;
         }
 
-        .form {
-            margin-top: 2vh;
+        .progress-wrapper {
+            margin-top: 30px;
+            width: 60%;
+            max-width: 600px;
         }
 
-        table,
-        th,
-        td {
-            border: 1px solid;
+        .progress-container {
+            width: 100%;
+            height: 25px;
+            border-radius: 999px;
+            overflow: hidden;
+            background-color: #d5e6ff;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background-color: var(--feature-accent);
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            margin-top: 10px;
+            text-align: center;
         }
 
         .results {
-            margin-top: 5vh;
+            margin-top: 40px;
+            margin-bottom: 50px;
         }
+
+        table,
+        td,
+        th {
+
+            border: 1px solid;
+            border-collapse: collapse;
+            padding: 8px;
+        }
+
+        table {
+            margin-bottom: 30px;
+        }
+
     </style>
 </head>
 
 <body>
 
+    <div class="content">
 
-    <div class="main">
-        <div class="container">
-            <div class="header">
-
-            </div>
-            <div class="post_header">
-                <div class="title">
-                    <h1>Scan with SmartEye</h1>
-                </div>
-            </div>
-            <div class="content">
-                <div class="upload">
-                    <input id="img" type="file" name="img" hidden />
-
-                    <label for="img" class="upload-label">
-                        Click or Drop Here
-                    </label>
-                </div>
-                <div class="form">
-                    <button onclick="scanImage()">Submit</button>
-                </div>
-                <div class="results">
-                    <div id="res"></div>
-                </div>
-            </div>
+        <div class="title">
+            <h1>Scan with SmartEye</h1>
         </div>
+
+        <div class="upload">
+
+            <input
+                id="img"
+                type="file"
+                accept="image/*"
+                hidden
+            />
+
+            <label for="img" class="upload-label">
+                Click or Drop Image Here
+            </label>
+
+        </div>
+
+        <div class="file-name" id="fileName">
+            No Image Selected
+        </div>
+
+        <button onclick="scanImage()">
+            Submit
+        </button>
+
+        <div class="progress-wrapper">
+
+            <div class="progress-container">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+
+            <div class="progress-text" id="progressText">
+                Waiting...
+            </div>
+
+        </div>
+
+        <div class="results">
+            <div id="res"></div>
+        </div>
+
     </div>
 
     <script>
+
         const scanner_url = "/api/scan/image";
+
         const upload = document.querySelector(".upload");
+
         const input = document.querySelector("#img");
 
+        const progressBar =
+            document.getElementById("progressBar");
+
+        const progressText =
+            document.getElementById("progressText");
+
+        input.addEventListener("change", () => {
+
+            const file = input.files[0];
+
+            if (!file) return;
+
+            document.getElementById("fileName").textContent =
+                `Selected: ${file.name}`;
+        });
+
         upload.addEventListener("dragover", (e) => {
+
             e.preventDefault();
+
             upload.classList.add("dragging");
         });
 
         upload.addEventListener("dragleave", () => {
+
             upload.classList.remove("dragging");
         });
 
         upload.addEventListener("drop", (e) => {
+
             e.preventDefault();
+
             upload.classList.remove("dragging");
 
             const files = e.dataTransfer.files;
 
-            input.files = files;
+            const dt = new DataTransfer();
 
-            console.log(files);
+            for (const file of files) {
+
+                if (file.type.startsWith("image/")) {
+                    dt.items.add(file);
+                }
+            }
+
+            input.files = dt.files;
+
+            if (input.files[0]) {
+
+                document.getElementById("fileName").textContent =
+                    `Selected: ${input.files[0].name}`;
+            }
         });
 
         function renderCSV(csv) {
 
             const rows = csv.trim().split("\n");
 
-            let html = "<table border='1'>";
+            const table = document.createElement("table");
 
             for (const row of rows) {
 
-                const cols = row.split(",");
+                const tr = document.createElement("tr");
 
-                html += "<tr>";
+                const cols = row.split(",");
 
                 for (const col of cols) {
 
-                    html += `<td>${col}</td>`;
+                    const td = document.createElement("td");
+
+                    td.textContent = col;
+
+                    tr.appendChild(td);
                 }
 
-                html += "</tr>";
+                table.appendChild(tr);
             }
 
-            html += "</table>";
+            document.getElementById("res").innerHTML = "";
 
-            document.getElementById(
-                "res"
-            ).innerHTML = html;
+            document.getElementById("res")
+                .appendChild(table);
         }
+
         async function scanImage() {
-            const inp = document.getElementById("img");
-            const img = inp.files[0];
+
+            const img = input.files[0];
+
+            if (!img) {
+
+                alert("Please select an image");
+
+                return;
+            }
+
+            progressText.textContent =
+                "Uploading Image...";
+
+            progressBar.style.width = "30%";
+
             const fD = new FormData();
+
             fD.append("img", img);
+
             const res = await fetch(
-                `${scanner_url}`,
+                scanner_url,
                 {
                     method: "POST",
-                    "body": fD
+                    body: fD
                 }
-            )
-            // const tdata = await res.text();
+            );
+
+            progressBar.style.width = "70%";
+
+            progressText.textContent =
+                "Analyzing Image...";
+
             const data = await res.json();
-            // console.log(tdata);
-            console.log(data.data);
+
+            progressBar.style.width = "100%";
+
+            progressText.textContent =
+                "Completed Analysis";
+
             renderCSV(data.data);
         }
+
     </script>
+
 </body>
 
 </html>
